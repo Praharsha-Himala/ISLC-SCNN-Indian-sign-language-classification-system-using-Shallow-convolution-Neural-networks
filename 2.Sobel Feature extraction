@@ -1,0 +1,25 @@
+import numpy as np
+import cv2
+
+# Load the npy file
+image_data = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/gray/X_test.npy')
+
+num_images, height, width = image_data.shape
+
+# Initialize an array to store the Sobel images
+sobel_images = np.zeros_like(image_data)
+
+# Apply Sobel filter to each image
+for i in range(num_images):
+    sobel_x = cv2.Sobel(image_data[i], cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(image_data[i], cv2.CV_64F, 0, 1, ksize=3)
+    sobel_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+
+    # Scale the result to 8-bit for display (optional)
+    sobel_magnitude = cv2.normalize(sobel_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+
+    sobel_images[i] = sobel_magnitude
+
+# Save or display the Sobel images
+# For example, to save the Sobel images to a new npy file:
+np.save('/content/drive/MyDrive/sign_language_conference/raw_data/sobel/X_test.npy', sobel_images)
