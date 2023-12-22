@@ -1,0 +1,47 @@
+# import necessary libraries and extensions
+import pandas as pd
+from PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+
+# for rgb images
+import pandas as pd
+import numpy as np
+
+# Define the path to the CSV file
+csv_file = "/content/drive/MyDrive/sign_language_conference/val.csv"
+
+# Reduce the chunk size if necessary
+chunk_size = 10
+
+# Specify the columns to read
+columns_to_read = ["pixels", "activity"]
+
+# Create empty lists to store data
+reshaped_images = []
+labels = []
+
+# Process each chunk separately
+for chunk in pd.read_csv(csv_file, chunksize=chunk_size, usecols=columns_to_read):
+    # Convert pixel values to uint8 and reshape to image size
+    for pixels, activity in zip(chunk["pixels"], chunk["activity"]):
+        pixel_values = [int(pixel) for pixel in pixels.split()]
+        image = np.array(pixel_values, dtype=np.uint8).reshape((128, 128, 3))
+        reshaped_images.append(image)
+        labels.append(activity)
+
+from sklearn.model_selection import train_test_split
+X_main, X_test, y_main, y_test = train_test_split(X, y, test_size=0.2, random_state = 4, stratify=y)
+X_train, X_val, y_train, y_val = train_test_split(X_main,y_main,test_size=0.1, random_state = 4, stratify=y_main)
+
+print(f'Total number of images in X_train: {X_train.shape[0]}')
+print(f'Total number of images in X_test: {X_test.shape[0]}')
+print(f'Total number of images in X_val: {X_val.shape[0]}')
+
+# Save X_train and y_train directly to Google Drive
+np.save('/content/drive/MyDrive/sign_detection/X_train', X_train)
+np.save('/content/drive/MyDrive/sign_detection/y_train', y_train)
+np.save('/content/drive/MyDrive/sign_detection/X_val', X_val)
+np.save('/content/drive/MyDrive/sign_detection/y_val', y_val)
+np.save('/content/drive/MyDrive/sign_detection/X_test', X_test)
+np.save('/content/drive/MyDrive/sign_detection/y_test', y_test)
