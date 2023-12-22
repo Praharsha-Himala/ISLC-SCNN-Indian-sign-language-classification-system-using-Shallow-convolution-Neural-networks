@@ -1,0 +1,142 @@
+# import necessary libraries
+import PIL
+import cv2
+import numpy as np
+from PIL import Image
+import keras
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from keras.preprocessing.image import ImageDataGenerator
+from keras.layers import Dense, Flatten, Dropout, Reshape, Activation
+from keras.models import Model
+from keras.models import Sequential
+from keras import layers
+from sklearn.metrics import confusion_matrix, classification_report
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from keras import layers
+from keras.layers import  GlobalMaxPooling2D,  MaxPooling2D,GlobalAveragePooling2D, Concatenate,Multiply , Input
+from keras.layers import Conv2D
+from keras import regularizers
+from keras import models
+
+X_train = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/gray/X_train.npy')
+y_train = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/y_train_raw.npy')
+X_val = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/gray/X_val.npy')
+y_val = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/y_val_raw.npy')
+X_test = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/gray/X_test.npy')
+y_test = np.load('/content/drive/MyDrive/sign_language_conference/raw_data/y_test_raw.npy')
+
+X_train = np.reshape(X_train,(-1,128,128,1))
+X_test = np.reshape(X_test,(-1,128,128,1))
+X_val = np.reshape(X_val,(-1,128,128,1))
+
+train_datagen = ImageDataGenerator(rescale = 1./255.,
+                                    shear_range = 0.2,
+                                   zoom_range = 0.2,
+                                   rotation_range=30,
+                                   horizontal_flip = True
+                                   )
+
+val_datagen = ImageDataGenerator(rescale = 1./255.)
+
+test_datagen = ImageDataGenerator(rescale = 1./255.)
+
+from keras import models, layers, regularizers
+
+model = models.Sequential()
+
+# Convolutional Layer 1
+model.add(layers.Conv2D(32, kernel_size=(3, 3), padding='same', activation='relu', input_shape=(128, 128, 1), kernel_regularizer=regularizers.l2(0.01)))
+model.add(layers.BatchNormalization(momentum=0.3))
+model.add(layers.MaxPooling2D((2, 2), strides=(2, 2)))
+
+# Convolutional Layer 2
+model.add(layers.Conv2D(64, kernel_size=(3, 3), padding='same', activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+model.add(layers.BatchNormalization(momentum=0.3))
+model.add(layers.MaxPooling2D((2, 2), strides=(2, 2)))
+
+# Flatten layer
+model.add(layers.Flatten())
+
+# Dense Layer 1
+model.add(layers.Dense(1280, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+model.add(layers.Dropout(0.5))
+
+# Dense Layer 2 (output layer)
+model.add(layers.Dense(35, activation='softmax', kernel_regularizer=regularizers.l2(0.01)))
+
+
+model.summary()
+epochs = 50
+batch_size = 32
+input_shape = (128, 128, 1)
+# Compiling the model
+optimizer = keras.optimizers.Adam()
+model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, verbose=1)
+early_stopping = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience = 10, verbose=1)
+
+
+import time
+start_time = time.time()
+history = model.fit(train_datagen.flow(X_train,y_train, batch_size = batch_size),
+          epochs = epochs,
+          validation_data = val_datagen.flow(X_val, y_val, batch_size = batch_size),
+          callbacks =[early_stopping],
+          batch_size = batch_size,
+          shuffle = True,
+          steps_per_epoch = len(X_train) // batch_size)
+end_time = time.time()
+train_duration = end_time - start_time
+print(f'Train Duration{train_duration}')
+
+import time
+start_time = time.time()
+yp = model.predict(test_datagen.flow(X_test,y=None, shuffle=False,batch_size = batch_size))
+end_time = time.time()
+
+test_duration = end_time - start_time
+print(f'Test Duration{test_duration}')
+y_pred = np.argmax(yp, axis=1)
+
+print(classification_report(y_test,y_pred))
+
+import matplotlib.pyplot as plt
+
+# Plotting Loss
+plt.plot(history.history['loss'], color='navy', marker='o', label='Train Loss')
+plt.plot(history.history['val_loss'], color='darkred', marker='o', label='Validation Loss')
+plt.title('Train Loss Vs Validation Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epochs')
+plt.legend()
+plt.show()
+
+# Plotting Accuracy
+plt.plot(history.history['accuracy'], color='navy', marker='o', label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], color='darkred', marker='o', label='Validation Accuracy')
+plt.title('Train Accuracy Vs Validation Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epochs')
+plt.legend()
+plt.show()
+
+
+cm = confusion_matrix(y_test, y_pred)
+class_names = [ '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+               'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+               'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+plt.figure(figsize=(24,14))
+# Creating a dataframe for a array-formatted Confusion matrix,so it will be easy for plotting.
+cm_df = pd.DataFrame(cm, index = class_names,columns = class_names)
+sns.heatmap(cm_df/np.sum(cm_df), annot = True,annot_kws={'size': 8},
+            fmt='.1%', cmap='Blues')
+plt.ylabel('Actual Values')
+plt.xlabel('Predicted Values')
+plt.xticks()
+plt.show()
