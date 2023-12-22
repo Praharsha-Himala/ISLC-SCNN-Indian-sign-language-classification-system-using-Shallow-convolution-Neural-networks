@@ -1,0 +1,1 @@
+# ISLC-SCNN-Indian-sign-language-classification-system-using-Shallow-convolution-Neural-networks
